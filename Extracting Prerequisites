@@ -1,0 +1,40 @@
+# Get a list of all possible immediate requisites of a course
+get_immediate_reqs <- function(course_name, requisites = requisites_clean){
+  if(course_name %in% requisites$course){
+    reqs_table <- requisites %>% 
+      filter(course == course_name)
+    
+    immediate_reqs <- reqs_table %>%
+      pull(reqs)
+    
+    or_count <- reqs_table %>%
+      pull(lgc_conn_cd) %>%
+      str_count("OR") %>%
+      sum(na.rm = TRUE)
+    
+    return(list(reqs = immediate_reqs, or_count = or_count))
+    # return(reqs_table %>% select(reqs, lgc_conn_cd))
+  } else {
+    return(list(reqs = NULL, or_count = 0))
+  }
+}
+
+# Prints all possible prerequisites recursively
+# However, this ignores conditional operators like AND and OR
+in_class_print <- function(course_name, requisites = requisites_clean){
+  req_list <- get_immediate_reqs(course_name)
+  # or_count <- req_list$or_count
+  for(req in req_list$reqs){
+    cat(req, sep = "\n")
+    in_class_print(req)
+    # return(rbind(req_list, in_class_print(req)))
+  }
+}
+
+# Captures output of in_class_print and stores it as a character vector
+in_class <- function(course_name){
+  sort(unique(capture.output(in_class_print(course_name))))
+}
+
+# Example for A&O SCI 90: includes all potential requisites recursively
+aos_90_reqs <- in_class("A&O SCI 90")
