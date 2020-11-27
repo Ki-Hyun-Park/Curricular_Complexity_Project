@@ -1,29 +1,91 @@
-```{r}
-library(rvest)
-library(stringr)
-url <- "http://catalog.registrar.ucla.edu/ucla-catalog19-20-961.html"
+##### Scrape Subject Area Codes #####
 
-full_reqs <- url %>%
-  read_html %>%                      	# read as html
-  html_nodes('p, h2') %>%            	# query the paragraph under h2 headings
-  html_text %>%                      	# convert to text
-  subset(str_detect(., "Required")) %>%  # query required courses
-  str_replace("Required: ", "") %>%  	# remove "Required: " from text
-  str_split_fixed("\\.", 2) %>%      	# split on period
-  subset(select = c(T, F)) %>%       	# keep only sentences with courses
-  str_split(", ")                    	# get individual course numbers
-prepend <- function(req_vec){
-  for (i in 1:length(req_vec)) {
-	# extract subject if it exists; otherwise use previous subject
-	if (str_detect(req_vec[i], "[:alpha:]{2,}")) {
-  	subject <- str_extract(req_vec[i], "[:alpha:]{2,}")
-	} else {
-  	req_vec[i] <- paste(subject, req_vec[i])
-	}
-  }
-  return(req_vec)
+library(rvest)
+
+url <- "https://www.registrar.ucla.edu/Faculty-Staff/Courses-and-Programs/Department-and-Subject-Area-Codes"
+
+code_table <- url %>%
+  read_html %>%                          # read as html 
+  html_nodes('td:nth-child(3)') %>%      # query the paragraph under h2 headings
+  html_text %>% 
+  cbind(subject = .,
+        code = 
+          url %>%
+          read_html %>%
+          html_nodes('td:nth-child(4)') %>%
+          html_text %>%
+          str_trim(side = "both")) %>%
+  write.csv(file = "abbrev_table.csv", row.names = FALSE)
+
+##### Extract Major Courses for Pure Math Major #####
+
+# regex patterns for extracting subject, course, or subject and course
+subject_pattern <- "(?<!\\d)[A-Z][A-Z &-]+(?!\\d)"
+course_pattern <- "[CM]{0,2}\\d+[A-Z]{0,3}"
+subject_course_pattern <- paste(subject_pattern, course_pattern)
+
+# use subject codes to abbreviate subject names, e.g., "Mathematics" -> "MATH"
+abbreviate <- function(vec){
+  abbrev <- read.csv("abbrev_table.csv", stringsAsFactors = FALSE)
+  return(str_replace_all(vec, setNames(abbrev$code, abbrev$subject)))
 }
 
-prepend_reqs <- lapply(full_reqs, prepend)
+# takes a string with non-subject course labels and adds subject codes
+# e.g., "MATH 31A or 31AL" -> "MATH 31A or MATH 31AL"
+add_subject <- function(string){
+  char_vec <- string %>%
+    abbreviate %>%
+    str_trim() %>%
+    str_split(" ") %>%
+    unlist()
+  
+  for(i in 1:length(char_vec)){
+    if(str_detect(char_vec[i], subject_pattern)){
+      current_subject <- char_vec[i]
+      char_vec[i] <- ""
+    }
+    if((i > 1) & str_detect(char_vec[i], course_pattern)){
+      char_vec[i] <- paste(current_subject, char_vec[i])
+    }
+  }
+  return(str_trim(paste(char_vec, collapse = " ")))
+}
 
-```
+# URL for math major
+url <- "http://catalog.registrar.ucla.edu/ucla-catalog19-20-961.html"
+
+# get full list of requisites as a vector of strings
+full_reqs <- url %>%
+  read_html %>%                          # read as html 
+  html_nodes('p, h2') %>%                # query the paragraph under h2 headings
+  html_text %>%                          # convert to text
+  subset(str_detect(., "Required")) %>%  # query required courses
+  str_replace("Required: ", "") %>%      # remove "Required: " from text
+  str_split_fixed("\\.", 2) %>%          # split on period
+  subset(select = c(T, F)) %>%           # keep only sentences with requirements
+  abbreviate()                           # abbreviate subject names to codes
+
+# Example for Pure Math major
+pure_math_reqs <- full_reqs %>%
+  lapply(add_subject) %>%
+  str_split(",") %>%
+  lapply(str_trim)
+
+##### Extract Major Courses for Applied Math Major #####
+
+# URL for applied math major
+url <- "http://catalog.registrar.ucla.edu/ucla-catalog19-20-962.html"
+
+# Example for Applied Math major
+applied_math_reqs <- url %>%
+  read_html %>%                          
+  html_nodes('p, h2') %>%                
+  html_text %>%                          
+  subset(str_detect(., "Required")) %>%  
+  str_replace("Required: ", "") %>%      
+  str_split_fixed("\\.", 2) %>%          
+  subset(select = c(T, F)) %>%           
+  abbreviate() %>%
+  lapply(add_subject) %>%
+  str_split(",") %>%
+  lapply(str_trim)
