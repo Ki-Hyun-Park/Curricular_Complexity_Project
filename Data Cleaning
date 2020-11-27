@@ -1,0 +1,49 @@
+library(readxl)
+library(dplyr)
+library(stringr)
+
+# Read in data
+requisites <- read_xlsx("curricular_complexity_data_codebook.xlsx", sheet = 1)
+# transfer <- read_xlsx("curricular_complexity_ttd_data_v2.xlsx", sheet = 1)
+
+# In the requisites table, C (for concurrent) and M (for multiple-listed)
+# are suffixes; we want to take them and move them to the front of the
+# course catalog numbers, so that, e.g., "140 M" -> "M140"
+transpose_prefix <- function(string){
+  prefix <- str_extract(string, "(?<= |L)[CM]{1,2}$")
+  first_digit <- str_extract(string, "\\d")
+  # If the prefix is preceded by a space or an "L" (lab class), extract it.
+  # This avoids extracting a "prefix" that is actually part of the course 
+  # number, such as "PSYCH 119M" or "STATS 100C"
+  # Otherwise, return the original string; no prefix exists
+  if(!is.na(first_digit) & !is.na(prefix)){
+    string %>% 
+      str_replace("(?<= |L)[CM]{1,2}$", "") %>%
+      str_replace("\\d", paste0(prefix, first_digit)) %>%
+      str_trim() %>%
+      return()
+  } else {
+    return(string)
+  }
+}
+
+# Create a "proper" table of requisites that has full and correct course names
+requisites_clean <- requisites %>%
+  # Remove leading zeroes from the course catalog number
+  mutate(crs_catlg_no = str_replace(crs_catlg_no, "^0+", ""),
+         rqs_crs_catlg_no = str_replace(rqs_crs_catlg_no, "^0+", ""),
+         course = paste(subj_area_cd, crs_catlg_no),
+         reqs = paste(rqs_subj_area_cd, rqs_crs_catlg_no)) %>%
+  # Tranpose the prefix for every course; "a" is just a placeholder that
+  # indicates that we want vapply to return a character string
+  mutate(course = vapply(course, transpose_prefix, "a", USE.NAMES = FALSE),
+         reqs = vapply(reqs, transpose_prefix, "a", USE.NAMES = FALSE)) %>%
+  select(course, reqs, everything())
+
+# Create CSV file with cleaned data
+# write.csv(requisites_clean, "curricular_complexity_requisites_cleaned.csv")
+
+# Create a list of all courses included in the requisites table
+all_courses <- requisites_clean %>%
+  select(course, reqs) %>%
+  unlist(use.names = FALSE)
