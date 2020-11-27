@@ -1,0 +1,29 @@
+```{r}
+library(rvest)
+library(stringr)
+url <- "http://catalog.registrar.ucla.edu/ucla-catalog19-20-961.html"
+
+full_reqs <- url %>%
+  read_html %>%                      	# read as html
+  html_nodes('p, h2') %>%            	# query the paragraph under h2 headings
+  html_text %>%                      	# convert to text
+  subset(str_detect(., "Required")) %>%  # query required courses
+  str_replace("Required: ", "") %>%  	# remove "Required: " from text
+  str_split_fixed("\\.", 2) %>%      	# split on period
+  subset(select = c(T, F)) %>%       	# keep only sentences with courses
+  str_split(", ")                    	# get individual course numbers
+prepend <- function(req_vec){
+  for (i in 1:length(req_vec)) {
+	# extract subject if it exists; otherwise use previous subject
+	if (str_detect(req_vec[i], "[:alpha:]{2,}")) {
+  	subject <- str_extract(req_vec[i], "[:alpha:]{2,}")
+	} else {
+  	req_vec[i] <- paste(subject, req_vec[i])
+	}
+  }
+  return(req_vec)
+}
+
+prepend_reqs <- lapply(full_reqs, prepend)
+
+```
