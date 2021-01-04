@@ -1,4 +1,7 @@
 # Curricular_Complexity_Project
+
+***
+
 - <p> The whole project was done in about 3 weeks and it was conducted by group of 5 people. </p>
 
 - As a group of 5 people, we:
@@ -12,3 +15,5 @@
 <p> - Web scraped from MyUCLA(online UCLA registrar office) to extract major requirements and course requirements. </p>
 
 <p> - Created curriculum mappings to visualize major complexity. </p>
+
+***
