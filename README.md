@@ -1,5 +1,5 @@
 # Curricular_Complexity_Project
-- <p> This project is about EDA and comparative analysis on 15 majors at UCLA. The whole project was done in about 3 weeks and it was conducted by group of 5 people. </p>
+- <p> The whole project was done in about 3 weeks and it was conducted by group of 5 people. </p>
 
 - As a group of 5 people, we:
 
