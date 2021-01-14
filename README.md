@@ -6,7 +6,7 @@
 
 - As a group of 5 people, we:
    <p>
-   - Conducted EDA and comparative analysis on 15 major curriculums in UCLA. These analyses use a variety of visualizations and provide in depth information on      degree requirements. <br/>
+   - Conducted EDA and comparative analysis on 15 major curriculums in UCLA. These analyses use a variety of visualizations and provide indepth information on      degree requirements. <br/>
 
    - Used Excel and github repository to obtain the relevant data for 15 majors. <br/>
 
